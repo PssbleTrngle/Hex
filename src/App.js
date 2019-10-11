@@ -8,7 +8,7 @@ import Season from './Season';
 import DISPLAY_TYPES from './DisplayType';
 import Twemoji from 'react-twemoji';
 
-var TICK_RADIUS = 4;
+var TICK_RADIUS;
 var TILE_MARGIN = 0;
 
 function App() {
@@ -16,12 +16,15 @@ function App() {
 	let search = window.location.search;
 	let params = new URLSearchParams(search);
 
-	let seed = params.get('seed');
-	let scale = params.get('scale');
+	let seed = parseInt(params.get('seed'));
+	let scale = parseInt(params.get('scale'));
+	TICK_RADIUS = parseInt(params.get('radius'));
 	let randomize = params.get('gen') == 'random';
 
-	if(!seed) seed = Math.random();
-	if(!scale) scale = 2;
+	if(isNan(TICK_RADIUS)) TICK_RADIUS = Infinity;
+
+	if(isNan(seed)) seed = Math.random();
+	if(isNan(scale)) scale = 2;
 
 	scale = Math.max(0.3, Math.min(10, scale));
 
