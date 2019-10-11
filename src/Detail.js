@@ -42,25 +42,28 @@ export class Plant extends Detail {
 		this.max = max;
 	}
 
-	tick(tiles, pos) {
-		let tile = tiles.get(pos);
+	tick(tile, tiles, pos) {
+
 		if(tile.growth < this.max)
-			tiles.set(pos, {growth: tile.growth + 1});
+			tile.set({growth: tile.growth + 1});
 
 		if(this == Plant.SACRED_OAK) {
+			
 			for(let pos2 of tiles.neighboors(pos)) {
 
-				let type = tiles.get(pos2).type;
+				let neighboor = tiles.get(pos2);
 
-				if(type.tainted)
-					tiles.set(pos2, {type: Type.DIRT});
-				else if(type == Type.DIRT)
-					tiles.set(pos2, {type: Type.GRASS});
+				if(neighboor.type.tainted)
+					neighboor.set(pos2, {type: Type.DIRT});
+				else if(neighboor.type == Type.DIRT)
+					neighboor.set({type: Type.GRASS});
 				else
-					tiles.set(pos2, {type: Type.HOLY_LAND});			
+					neighboor.set({type: Type.HOLY_LAND});	
+
+				tiles.set(pos2, neighboor);
 			}
 
-			tiles.set(pos, {type: Type.HOLY_LAND});
+			tile.set({type: Type.HOLY_LAND});
 		}
 	}
 

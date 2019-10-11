@@ -2,35 +2,82 @@ import React from 'react';
 import './App.css';
 import Type from './Type.js';
 import Pos from './Pos.js';
-import Generator from './Generator'
-import DisplayTypes from './DisplayType'
+import Generator from './Generator';
+import Tile from './Tile';
+import Season from './Season';
+import DISPLAY_TYPES from './DisplayType';
+import Twemoji from 'react-twemoji';
 
-var TICK_RADIUS = Infinity;
+var TICK_RADIUS = 4;
 var TILE_MARGIN = 0;
 
 function App() {
-  return (<Container />);
+
+	let search = window.location.search;
+	let params = new URLSearchParams(search);
+
+	let seed = params.get('seed');
+	let scale = params.get('scale');
+	let randomize = params.get('gen') == 'random';
+
+	if(!seed) seed = Math.random();
+	if(!scale) scale = 2;
+
+	scale = Math.max(0.3, Math.min(10, scale));
+
+	return (<Game seed={seed} randomize={randomize} hexsize={80 / scale} width={Math.floor(scale * 17)} height={Math.floor(scale * 12)} />);
 }
 
-class Container extends React.PureComponent {
+class Game extends React.PureComponent {
+
+	tick() {
+		this.setState({day: this.state.day + 1});
+	}
 
 	constructor(props) {
 		super(props);
 
-		this.state = {focus: {}};
+	    let tiles = new Tiles(this);
+
+	    for(let y = 0; y < this.props.height; y++)
+	      for(let x = 0; x < this.props.width; x++)
+	        tiles.add(new Pos(x - Math.floor(y/2), y));
+
+	    let gen = new Generator(this.props.seed, this.props.randomize);
+	   	gen.generate(tiles);
+
+		this.state = {focus: {}, display: DISPLAY_TYPES[0], day: 0, tiles};
+
+	}
+
+	componentDidMount() {
+		this.state.tiles.tick(new Pos(0,0), Infinity);
 	}
 
 	focus(tile, pos) {
-		//this.setState({focus: {}});
+		this.setState({focus: {tile, pos}});
 	}
 
 	render() {
 		return (
 		  	<table className='container'><tbody><tr>
-			    <GameField width={70} height={40} bar={this} focus={this.state.focus.pos} />
-			  	<Sidebar tile={this.state.focus.tile} />
+			    <GameField
+				    hexsize={this.props.hexsize}
+				    tiles={this.state.tiles}
+				    display={this.state.display}
+				    bar={this}
+				    focus={this.state.focus.pos} />
+			  	<Sidebar
+				  	day={this.state.day}
+				  	display={this.state.display}
+				  	tile={this.state.focus.tile}
+				  	container={this}/>
 		  	</tr></tbody></table>
 		);
+	}
+
+	componentDidUpdate() {
+		this.state.tiles.resetChanges();
 	}
 
 }
@@ -39,41 +86,62 @@ class Tiles {
 
 	tiles = {};
 	changed = {};
+	container;
 
-	constructor(tiles) {
-		this.tiles = tiles;
+	constructor(container, tiles) {
+		this.container = container;
+		if(tiles) this.tiles = tiles;
 	}
 
-  get(pos) {
-  	return this.tiles[pos];
-  }
+	get(pos) {
+		return this.tiles[pos];
+	}
 
-  set(pos, tile) {
-  	tile = Object.assign({}, tile);
-  	tile.changed = true;
-  	if(!this.changed[pos]) this.changed[pos] = {};
-	Object.assign(this.changed[pos], tile);
-  }
+	set(pos, tile) {
+		if(tile.changed) {
+			if(!this.changed[pos]) this.changed[pos] = {};
+			Object.assign(this.changed[pos], tile);
+		}
+	}
 
-  apply() {
-  	for(let pos in this.changed) {
-  		this.tiles[pos] = Object.assign(Object.assign({}, this.tiles[pos]), this.changed[pos]);
-  	}
-  }
+	apply() {
+		for(let pos in this.changed) {
+			this.tiles[pos] = Object.assign(this.tiles[pos].clone(), this.changed[pos]);
+		}
 
-  nextTick() {
-  	for(let pos in this.tiles)
-		this.tiles[pos].changed = false;
-  }
+		if(this.container)
+			this.container.setState({tiles: this.clone()});
+	}
 
-  clone() {
-	let tiles = Object.assign({}, this.tiles);
-	return new Tiles(tiles);
-  }
+	tick(pos, radius) {
+		this.resetChanges();
+		if(this.container)
+			this.container.tick();
 
-  add(pos){
-  	this.tiles[pos] = {};
-  }
+		let neighboors = this.neighboors(pos, radius);
+		neighboors.push(pos);
+	    for(let pos of neighboors)
+	    	this.get(pos).tick(this, pos);
+
+	    this.apply();
+	}
+
+	resetChanges() {
+		for(let pos in this.tiles) {
+			this.tiles[pos].changed = false;
+			this.tiles[pos].update = false;
+			this.changed = {};
+		}
+	}
+
+	clone() {
+		let tiles = Object.assign({}, this.tiles);
+		return new Tiles(this.container, tiles);
+	}
+
+	add(pos){
+		this.tiles[pos] = new Tile();
+	}
 
 	neighboors(pos, radius) {
 		if(!radius) radius = 1;
@@ -87,10 +155,9 @@ class Tiles {
 		else
 			for(let x = -radius; x <= radius; x++)
 				for(let y = -radius; y <= radius; y++)
-					if(Math.abs(x + y) <= radius) {
+					if(Math.abs(x + y) <= radius && (x != 0 || y != 0)) {
 						let pos2 = new Pos(pos.x + x, pos.y + y);
-						let neighboor = this.get(pos2)
-						if(neighboor)
+						if(this.get(pos2))
 							neighboors.push(pos2);
 					}
 
@@ -100,16 +167,60 @@ class Tiles {
 
 }
 
-class Sidebar extends React.PureComponent {
+class Button extends React.PureComponent {
 
 	render() {
-		if(!this.props.tile) return null;
+		return (
+			<button onClick={this.props.click} className={'button' + (this.props.active ? ' active' : '')}>
+				<Twemoji>{this.props.text}</Twemoji>
+			</button>
+ 		);
+         		
+	}
+
+}
+
+class DisplayButtons extends React.PureComponent {
+
+	render() {
+		return (
+			<table className='button-bar'><tbody>
+				<tr>
+         			{DISPLAY_TYPES.map((type, i) => {
+         				return (<td>
+         					<Button active={type === this.props.active} key={type.icon} click={() => this.props.container.setState({display: type})} container={this.props.container} text={type.icon} />
+         				</td>);
+         			})}
+				</tr>
+			</tbody></table>
+		);
+	}
+
+}
+
+class Sidebar extends React.Component {
+
+	render() {
 		return (
 			<td className='sidebar'>
-				<Hex tile={this.props.tile} isFocus={true}/>
-				<h2>{this.props.tile.type.name}</h2>
-				{this.props.tile.snowed ? (<p>Snowed</p>) : null}
-				{this.props.tile.taintProcess ? (<p>{this.props.tile.taintProcess - 1} turn until tainted</p>) : null}
+
+				<DisplayButtons active={this.props.display} container={this.props.container}/>
+
+				{ this.props.tile ? (
+					<React.Fragment>
+
+					<h3>Day {this.props.tile.day}</h3>
+
+					<h3>{this.props.tile.season().name}</h3>
+					<h3><Twemoji>{this.props.tile.season().icon}</Twemoji></h3>
+
+						<Hex pos={new Pos(0,0)} display={this.props.display} tile={this.props.tile} isFocus={true}/>
+						<h2>{this.props.tile.type.name}</h2>
+						{this.props.tile.snowed ? (<p>Snowed</p>) : null}
+						{this.props.tile.taintProcess ? (<p>{this.props.tile.taintProcess - 1} turn until tainted</p>) : null}
+					</React.Fragment>
+				) : null}
+
 			</td>
 		);
 	}
@@ -118,31 +229,28 @@ class Sidebar extends React.PureComponent {
 
 class GameField extends React.Component {
 
-  constructor(props) {
-    super(props);
-
-    let tiles = new Tiles({});
-
-    for(let y = 0; y < this.props.height; y++)
-      for(let x = 0; x < this.props.width; x++)
-        tiles.add(new Pos(x - Math.floor(y/2), y));
-
-    let gen = new Generator(Math.random());
-   	gen.generate(tiles);
-
-    this.state = { tiles };
-
-  }
-
   render() {
-  	let size = 20;
+  	let size = this.props.hexsize;
     return (
-        <td className='gamefield'>
-          {Object.keys(this.state.tiles.tiles).map((pos, i) => {
-            return <Hex key={pos} bar={this.props.bar} tile={this.state.tiles.get(pos)} pos={Pos.from(pos)} field={this} size={size} />
+        <td className='gamefield'><div>
+          {Object.keys(this.props.tiles.tiles).map((pos, i) => {
+            pos = Pos.from(pos);
+            return ( 
+	            <Hex
+	    			display={this.props.display}
+	    			key={pos}
+	    			bar={this.props.bar}
+	    			tile={this.props.tiles.get(pos)}
+	    			pos={pos}
+	    			tiles={this.props.tiles}
+	    			size={size} 
+	    			hover={pos.inHex(this.props.focus, TICK_RADIUS)}
+	    			focus={pos.isSame(this.props.focus)}
+	    		/>
+	    	);
           })}
-          <Focus pos={this.props.focus} size={size} />
-      </td>
+          { TICK_RADIUS < Infinity && false ? <Focus pos={this.props.focus} size={size} /> : null}
+      </div></td>
     );
   }
 }
@@ -169,10 +277,10 @@ class Focus extends React.Component {
 		if(!this.props.pos) return null;
 		return (
 			<div className='hex-focus' style={{
-				width: this.props.size * (TICK_RADIUS * 2 + 1),
-				height: this.props.size * (TICK_RADIUS * 2 + 1) / 1.15,
-				top: (this.props.pos.y + 0.5) * (this.props.size / 1.34) ,
-				left: ((this.props.pos.x + 0.5) + (this.props.pos.y / 2)) * (this.props.size / 1.17),
+				width: this.props.size * (TICK_RADIUS * 2),
+				height: this.props.size * (TICK_RADIUS * 2) / 1.15,
+				top: (this.props.pos.y + 0.5) * (this.props.size / 1.37 + TILE_MARGIN),
+				left: ((this.props.pos.x + 0.5) + (this.props.pos.y / 2)) * (this.props.size / 1.19 + TILE_MARGIN),
 			}}></div>
 		);
 	}
@@ -185,71 +293,53 @@ class Hex extends React.Component {
 		if(this.props.isFocus)
 			return true;
 
-		let changed = nextProps.tile.changed === true;
-		return changed;
+		if(nextProps.display != this.props.display)
+			return true;
+
+		if(nextProps.hover != this.props.hover)
+			return true;
+
+		if(nextProps.focus != this.props.focus)
+			return true;
+
+		return nextProps.tile.update === true;
 	}
 
 	constructor(props) {
 	    super(props);
 
-	    this.tick = this.tick.bind(this);
-	    this.mouseOver = this.mouseOver.bind(this);
-	    this.mouseOut = this.mouseOut.bind(this);
+	    this.handleClick = this.handleClick.bind(this);
 
 	    this.state = {};
 	}
 
-	tick() {
-		let tiles = this.props.field.state.tiles.clone();
-		tiles.nextTick();
+	handleClick() {
+		if(this.props.isFocus) return;
 
-		let neighboors = tiles.neighboors(this.props.pos, TICK_RADIUS);
-	    for(let pos of neighboors)
-	    	Type.tick(tiles, pos);
-
-	    tiles.apply();
-		this.props.field.setState({ tiles });
-	}
-
-	mouseOver(e) {
+		if(this.props.focus)
+			return this.tick();
 
 		if(this.props.pos)
 			this.props.bar.focus(this.props.tile, this.props.pos);
-
-		return;
-		let tiles = this.props.field.state.tiles.clone();
-
-	    for(let pos of tiles.neighboors(this.props.pos, TICK_RADIUS))
-	    	tiles.set(pos, {hover: true});
-
-	    tiles.apply();
-		this.props.field.setState({ tiles });
 	}
 
-	mouseOut(e) {
-		return;
-		let tiles = this.props.field.state.tiles.clone();
+	tick() {
+		if(this.props.isFocus) return;
 
-	    for(let pos of tiles.neighboors(this.props.pos, TICK_RADIUS))
-	    	tiles.set(pos, {hover: undefined});
-
-	    tiles.apply();
-		this.props.field.setState({ tiles });
+		this.props.tiles.tick(this.props.pos, TICK_RADIUS);
 	}
 
 	render() {
 		let tile = this.props.tile;
 		if(!tile) return null;
 
-		let display = DisplayTypes.DEFAULT;
+		let display = this.props.display;
 		let color = display.color(tile, this.props.pos);
 
 		return (
-			<div className='hex'
-				onClick={this.tick}
-				className={'hex' + (this.props.isFocus ? ' focus' : '') + (tile.hover ? ' hover' : '')}
-				onMouseOver={this.mouseOver}
-				onMouseOut={this.mouseOut}
+			<div
+				onClick={this.handleClick}
+				className={'hex tile' + (this.props.isFocus ? ' focus' : '') + (this.props.hover ? ' hover' : '')}
 				style={ !this.props.isFocus ? {
 					top: this.props.pos.y * (this.props.size / 1.37 + TILE_MARGIN),
 					left: (this.props.pos.x + (this.props.pos.y / 2)) * (this.props.size / 1.19 + TILE_MARGIN),

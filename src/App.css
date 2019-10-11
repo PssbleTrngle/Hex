@@ -8,6 +8,12 @@
   -webkit-clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
   clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
 
+  /* transition: background 0.1s linear; */
+
+}
+
+.tile {
+  margin: 10px;
 }
 
 .detail {
@@ -16,11 +22,6 @@
   left: 50%;
   transform: translate(-50%, -50%);
 
-}
-
-* {
-  margin: 0;
-  padding: 0;
 }
 
 @keyframes rotate {
@@ -33,14 +34,18 @@
   position: relative;
   height: calc(140px * 1.15);
   width: calc(140px);
-  margin: 20px;
+  margin: 0 auto;
 
   animation: rotate 20s linear infinite;
 
 }
 
 .hex:hover, .hex.hover {
-  filter: brightness(0.9);
+  filter: brightness(0.7);
+}
+
+.hex.hover:hover {
+  filter: brightness(0.5);
 }
 
 .hex-focus {
@@ -54,7 +59,8 @@
   -webkit-clip-path: polygon(100% 50%, 75% 0%, 25% 0%, 0% 50%, 25% 100%, 75% 100%);
   clip-path: polygon(100% 50%, 75% 0%, 25% 0%, 0% 50%, 25% 100%, 75% 100%);
 
-  background-color: #0001;
+  opacity: 0.2;
+  background-color: #000;
 
 }
 
@@ -67,6 +73,7 @@
   padding: 40px;
 
   text-align: center;
+  vertical-align: top;
 
 }
 
@@ -85,4 +92,62 @@
   width: 100vw;
   height: 100vh;
 
+}
+
+.button-bar {
+
+  border-spacing: 10px;
+
+}
+
+table {
+  border-spacing: 0;
+}
+
+button {
+  border: none;
+  outline: none;
+  padding: 0;
+  margin: 0;
+}
+
+.button {
+
+  width: 60px;
+  height: 60px;
+  font-size: 30px;
+
+  border-radius: 100%;
+
+  background-color: #0004;
+
+  transition: background 0.1s linear;
+
+}
+
+img[src*='twemoji'] {
+  width: 70%;
+  margin: 15%;
+}
+
+h3 img[src*='twemoji'] {
+  height: 50px;
+  width: 50px;
+  margin: 0;
+}
+
+.button:hover {
+
+  background-color: #0002;
+
+}
+
+.button.active {
+
+  background-color: #0002;
+
+}
+
+.sidebar .margin {
+  height: 20px;
 }

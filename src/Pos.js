@@ -16,6 +16,22 @@ class Pos {
 		return new Pos(x, y);
 	}
 
+	isSame(pos) {
+		return pos && pos.x == this.x && pos.y == this.y;
+	}
+
+	inHex(pos, radius) {
+		if(!pos) return false;
+		if(!radius) radius = 1;
+		if(radius == Infinity) return this.isSame(pos);
+
+		let x = pos.x - this.x;
+		let y = pos.y - this.y;
+
+		return (Math.abs(x + y) <= radius) && Math.abs(y) <= radius && Math.abs(x) <= radius;
+
+	}
+
 }
 
 export default Pos;
