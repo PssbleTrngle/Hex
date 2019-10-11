@@ -21,10 +21,9 @@ function App() {
 	TICK_RADIUS = parseInt(params.get('radius'));
 	let randomize = params.get('gen') == 'random';
 
-	if(isNan(TICK_RADIUS)) TICK_RADIUS = Infinity;
-
-	if(isNan(seed)) seed = Math.random();
-	if(isNan(scale)) scale = 2;
+	if(isNaN(TICK_RADIUS)) TICK_RADIUS = Infinity;
+	if(isNaN(seed)) seed = Math.random();
+	if(isNaN(scale)) scale = 2;
 
 	scale = Math.max(0.3, Math.min(10, scale));
 
