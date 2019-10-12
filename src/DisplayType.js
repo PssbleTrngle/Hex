@@ -1,5 +1,6 @@
 import {blend} from './colors.js';
 import {noise} from './perlin.js';
+import Tile from './Tile.js';
 
 class DisplayType {
 
@@ -10,6 +11,9 @@ class DisplayType {
 		this.details = details;
 		this.icon = icon;
 	}
+
+	color(tile, pos) { return null; }
+	text(tile, pos) { return null; }
 
 }
 
@@ -63,13 +67,35 @@ class Season extends DisplayType {
 		return tile.season().color;
 	}
 
+	text(tile, pos) {
+		return tile.day;
+	}
+
+}
+
+class Time extends DisplayType {
+
+	color(tile, pos) {
+
+		let diff = tile.diff;
+		let blue = '#17fffb';
+		
+		return blend('#333', blue, diff / Tile.MAX_DIFF);
+
+	}
+
+	text(tile, pos) {
+		return tile.diff;
+	}
+
 }
 
 var DISPLAY_TYPES = [
 	new Default(true, '👁'),
 	new Temp(false, '🌡'),
 	new Energy(false, '💠'),
-	new Season(false, '📅')
+	new Season(false, '📅'),
+	new Time(false, '🕗')
 ]
 
 

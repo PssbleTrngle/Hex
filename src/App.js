@@ -21,9 +21,10 @@ function App() {
 	TICK_RADIUS = parseInt(params.get('radius'));
 	let randomize = params.get('gen') == 'random';
 
-	if(isNaN(TICK_RADIUS)) TICK_RADIUS = Infinity;
+	if(isNaN(TICK_RADIUS)) TICK_RADIUS = 3;
 	if(isNaN(seed)) seed = Math.random();
-	if(isNaN(scale)) scale = 2;
+	if(isNaN(scale)) scale = 3;
+	if(params.get('radius') == 'infinite') TICK_RADIUS = Infinity;
 
 	scale = Math.max(0.3, Math.min(10, scale));
 
@@ -120,8 +121,18 @@ class Tiles {
 		if(this.container)
 			this.container.tick();
 
-		let neighboors = this.neighboors(pos, radius);
-		neighboors.push(pos);
+		let neighboors = this.neighboors(pos, radius, true);
+		let largerNeighboors = this.neighboors(pos, radius + 1, true);
+
+		//increment day
+	    for(let pos of neighboors)
+	    	this.get(pos).day++;
+
+	    //update diff
+	    for(let pos of largerNeighboors)
+	    	this.get(pos).updateDiff(this, pos);
+
+	    //tick
 	    for(let pos of neighboors)
 	    	this.get(pos).tick(this, pos);
 
@@ -145,7 +156,7 @@ class Tiles {
 		this.tiles[pos] = new Tile();
 	}
 
-	neighboors(pos, radius) {
+	neighboors(pos, radius, addCenter) {
 		if(!radius) radius = 1;
 
 		let neighboors = [];
@@ -154,10 +165,10 @@ class Tiles {
 			for(let pos in this.tiles)
 				neighboors.push(Pos.from(pos))
 
-		else
+		else 
 			for(let x = -radius; x <= radius; x++)
 				for(let y = -radius; y <= radius; y++)
-					if(Math.abs(x + y) <= radius && (x != 0 || y != 0)) {
+					if(Math.abs(x + y) <= radius && (addCenter || x != 0 || y != 0)) {
 						let pos2 = new Pos(pos.x + x, pos.y + y);
 						if(this.get(pos2))
 							neighboors.push(pos2);
@@ -235,26 +246,55 @@ class GameField extends React.Component {
   	let size = this.props.hexsize;
     return (
         <td className='gamefield'><div>
-          {Object.keys(this.props.tiles.tiles).map((pos, i) => {
-            pos = Pos.from(pos);
-            return ( 
-	            <Hex
-	    			display={this.props.display}
-	    			key={pos}
-	    			bar={this.props.bar}
-	    			tile={this.props.tiles.get(pos)}
-	    			pos={pos}
-	    			tiles={this.props.tiles}
-	    			size={size} 
-	    			hover={pos.inHex(this.props.focus, TICK_RADIUS)}
-	    			focus={pos.isSame(this.props.focus)}
-	    		/>
-	    	);
-          })}
+        	<div>
+	          {Object.keys(this.props.tiles.tiles).map((pos, i) => {
+	            pos = Pos.from(pos);
+	            return ( 
+		            <Hex
+		    			display={this.props.display}
+		    			key={pos}
+		    			bar={this.props.bar}
+		    			tile={this.props.tiles.get(pos)}
+		    			pos={pos}
+		    			tiles={this.props.tiles}
+		    			size={size} 
+		    			hover={pos.inHex(this.props.focus, TICK_RADIUS)}
+		    			focus={pos.isSame(this.props.focus)}
+		    		/>
+		    	);
+	          })}
+        	</div>
+			<div className='clouds'>
+				{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+					return <Cloud size={size * (1 + Math.random() * 2)} top={Math.random() * 100} delay={Math.random() * 10}/>
+				})}
+			</div>
           { TICK_RADIUS < Infinity && false ? <Focus pos={this.props.focus} size={size} /> : null}
       </div></td>
     );
   }
+}
+
+class Cloud extends React.Component {
+
+	shouldComponentUpdate(nextProps) {
+		return false;
+	}
+
+	render() {
+		return (
+			<div
+				className='hex cloud'
+				style={{
+					width: this.props.size / 1.15,
+					height: this.props.size,
+					top: this.props.top + '%',
+					animationDelay: this.props.delay + 's'
+				}}
+			></div>
+		);
+	}
+
 }
 
 class Detail extends React.PureComponent {
@@ -337,6 +377,7 @@ class Hex extends React.Component {
 
 		let display = this.props.display;
 		let color = display.color(tile, this.props.pos);
+		let text = display.text(tile, this.props.pos);
 
 		return (
 			<div
@@ -352,7 +393,8 @@ class Hex extends React.Component {
 					backgroundColor: color
 				}}
 			>
-			{tile.detail ? <Detail size={tile.detail.size(tile)} value={display.details ? tile.detail: null} /> : null}
+			{tile.detail && display.details ? <Detail size={tile.detail.size(tile)} value={tile.detail} /> : null}
+			{!display.details && text != null ? <p>{text}</p> : null}
 			</div>
 		);
 	}

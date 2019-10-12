@@ -7,7 +7,12 @@ class Tile {
 
 	static TAINT_TEMP = 0;
 	static SNOW_TEMP = -0.6;
-	day = 1;
+	static MAX_DIFF = 6;
+
+	constructor() {
+		this.day = 0;
+		this.diff = 0;
+	}
 
 	getTemp() {
 		return Math.max(-1, Math.min(1, this.temp + this.season().tempMod));
@@ -37,8 +42,26 @@ class Tile {
 		return newTile;
 	}
 
+	updateDiff(tiles, pos, justCollapsed) {
+		let diff = 0;
+
+		let neighboors = tiles.neighboors(pos);
+
+		for(let pos2 of neighboors) {
+			let neighboor = tiles.get(pos2);
+
+			diff = Math.max((neighboor.day - this.day), diff);
+		}
+
+		this.set({diff}, true);
+
+		if(!justCollapsed && diff > Tile.MAX_DIFF)
+			this.collapse(pos, tiles);
+
+		tiles.set(pos, this);
+	}
+
 	tick(tiles, pos) {
-		this.day++;
 
 		let neighboors = tiles.neighboors(pos);
 
@@ -88,14 +111,31 @@ class Tile {
 		this.set({snowed: !this.type.liquid && this.type != Type.ICE && this.getTemp() < Tile.SNOW_TEMP});
 
 		if(this.type == Type.WATER && this.getTemp() < Tile.SNOW_TEMP)
-			this.set({type: Type.ICE})
+			this.set({type: Type.ICE});
 		if(this.type == Type.ICE && this.getTemp() >= Tile.SNOW_TEMP)
-			this.set({type: Type.WATER})
+			this.set({type: Type.WATER});
 
 		let seasonChanges = this.day % Season.DAYS_PER_SEASON == 0;
-		this.set({day: this.day}, !seasonChanges);
+		this.set({day: this.day});
 		tiles.set(pos, this);
 
+	}
+
+	collapse(pos, tiles) {
+
+		let max = Number.MIN_SAFE_INTEGER;
+		let min = Number.MAX_SAFE_INTEGER;
+		for(let p of tiles.neighboors(pos)) {
+			let day = tiles.get(p).day;
+			max = Math.max(max, day);
+			min = Math.min(min, day);
+		}
+
+		let day = Math.floor((max + min) / 2);
+
+		this.set({day, type: Type.TAINT});
+		for(let p of tiles.neighboors(pos, 1, true))
+			tiles.get(p).updateDiff(tiles, p, true);
 	}
 
 	set(properties, noUpdate) {
