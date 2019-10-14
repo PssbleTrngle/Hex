@@ -1,5 +1,5 @@
 import Pos from './Pos.js';
-import Detail from './Detail.js';
+import Details from './Detail.js';
 
 class Type {
 
@@ -21,11 +21,11 @@ class Type {
 	static VOLCANIC_SAND =  new Type('#b5a96a', 'Volcanic Sand');
 	static ICE =  			new Type('#a8cbdb', 'Ice');
 
-	static LAVA =  			new Type(["#f44122", "#ff932d"], 'Lava').isLiquid()
+	static LAVA =  			new Type(["#f44122", "#ff932d"], 'Lava').isLiquid().isGlowing()
 									.influence([Type.GRASS], Type.DIRT)
 									.influence([Type.MUD], Type.DIRT)
 									.influence([Type.DIRT], Type.ASH)
-									.influence([Detail.TREE], null);
+									.influence([Details.TREE], null);
 
 	static WATER =  		new Type(["#48abc4", "#2066ab"], 'Water').isLiquid()
 									.influence([Type.DIRT], Type.MUD)
@@ -33,19 +33,27 @@ class Type {
 									.influence([Type.MUD], Type.GRASS)
 									.influence([Type.LAVA], Type.VOLCANIC_ROCK);
 
+	static FARMLAND =  			new Type('#7a5727', 'Farmland');
+
 	tainted = false;
 	color; 
 	name;
 	influences = [];
-	liquid = false;
 
 	constructor(color, name) {
 		this.color = color;
 		this.name = name;
+		this.liquid = false;
+		this.glowing = false;
 	}
 
 	isLiquid() {
 		this.liquid = true;
+		return this;
+	}
+
+	isGlowing() {
+		this.glowing = true;
 		return this;
 	}
 

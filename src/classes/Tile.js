@@ -1,17 +1,20 @@
 import Pos from './Pos.js';
-import Detail from './Detail.js';
+import Details from './Detail.js';
 import Type from './Type.js';
+import Lunar from './Lunar.js';
 import Season from './Season.js';
+import Tribe from './Tribe.js';
 
 class Tile {
 
 	static TAINT_TEMP = 0;
 	static SNOW_TEMP = -0.6;
-	static MAX_DIFF = 6;
+	static MAX_DIFF = 5;
 
 	constructor() {
 		this.day = 0;
 		this.diff = 0;
+		this.tribes = {};
 	}
 
 	getTemp() {
@@ -20,6 +23,29 @@ class Tile {
 
 	season() {
 		return Season.get(this.day);
+	}
+
+	lunar() {
+		return Lunar.get(this.day);
+	}
+
+	addTribe(tribe, amount) {
+		if(!isNaN(amount)) amount = 1;
+
+		let total = 0;
+		for(let tribe in this.tribes)
+			total += this.tribes[tribe];
+
+		if(total + amount <= Tribe.MAX) {
+
+			let tribes = Object.assign({}, this.tribes);
+
+			if(!tribes[tribe]) tribes[tribe] = 0;
+			tribes[tribe] += amount;
+			tribes[tribe] = Math.max(0, tribes[tribe]);
+
+			this.set({tribes});
+		}
 	}
 
 	applyInfluences(neighboor) {
@@ -53,7 +79,7 @@ class Tile {
 			diff = Math.max((neighboor.day - this.day), diff);
 		}
 
-		this.set({diff}, true);
+		this.set({diff});
 
 		if(!justCollapsed && diff > Tile.MAX_DIFF)
 			this.collapse(pos, tiles);
@@ -102,9 +128,6 @@ class Tile {
 		} else if(this.taintProcess)
 			this.set({taintProcess: this.taintProcess - 1});
 
-		if(this.detail)
-			this.detail.tick(this, tiles, pos);
-
 		if(this.type.tainted && this.detail)
 			this.set({detail: this.detail.tainted});
 
@@ -115,8 +138,13 @@ class Tile {
 		if(this.type == Type.ICE && this.getTemp() >= Tile.SNOW_TEMP)
 			this.set({type: Type.WATER});
 
+		if(this.detail)
+			this.detail.tick(this, tiles, pos);
+
+		for(let tribe in this.tribes)
+			Tribe.fromString(tribe).tick(tiles, pos, this);
+
 		let seasonChanges = this.day % Season.DAYS_PER_SEASON == 0;
-		this.set({day: this.day});
 		tiles.set(pos, this);
 
 	}
@@ -133,7 +161,10 @@ class Tile {
 
 		let day = Math.floor((max + min) / 2);
 
-		this.set({day, type: Type.TAINT});
+		this.set({day});
+		if(Math.random() < 0.1)
+			this.set({detail: Details.RIFTS[0], taintProcess: 1});
+
 		for(let p of tiles.neighboors(pos, 1, true))
 			tiles.get(p).updateDiff(tiles, p, true);
 	}

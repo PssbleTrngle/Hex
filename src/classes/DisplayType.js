@@ -1,5 +1,5 @@
-import {blend} from './colors.js';
-import {noise} from './perlin.js';
+import {blend} from '../colors.js';
+import {noise} from '../perlin.js';
 import Tile from './Tile.js';
 
 class DisplayType {
@@ -85,7 +85,7 @@ class Time extends DisplayType {
 	}
 
 	text(tile, pos) {
-		return tile.diff;
+		return tile.diff != 0 ? tile.diff : null;
 	}
 
 }

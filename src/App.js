@@ -1,15 +1,20 @@
 import React from 'react';
 import './App.css';
-import Type from './Type.js';
-import Pos from './Pos.js';
-import Generator from './Generator';
-import Tile from './Tile';
-import Season from './Season';
-import DISPLAY_TYPES from './DisplayType';
+import Type from './classes/Type.js';
+import Pos from './classes/Pos.js';
+import Generator from './classes/Generator';
+import Tile from './classes/Tile';
+import Tribe from './classes/Tribe';
+import Season from './classes/Season';
+import Lunar from './classes/Lunar';
+import DISPLAY_TYPES from './classes/DisplayType';
 import Twemoji from 'react-twemoji';
+import {noise} from './perlin.js';
 
 var TICK_RADIUS;
 var TILE_MARGIN = 0;
+var TICK_TIME = 300;
+var DISCOVER_MODE;
 
 function App() {
 
@@ -20,6 +25,7 @@ function App() {
 	let scale = parseInt(params.get('scale'));
 	TICK_RADIUS = parseInt(params.get('radius'));
 	let randomize = params.get('gen') == 'random';
+	DISCOVER_MODE = params.get('mode') == 'discover';
 
 	if(isNaN(TICK_RADIUS)) TICK_RADIUS = 3;
 	if(isNaN(seed)) seed = Math.random();
@@ -34,7 +40,7 @@ function App() {
 class Game extends React.PureComponent {
 
 	tick() {
-		this.setState({day: this.state.day + 1});
+		this.setState({isNight: !this.state.isNight});
 	}
 
 	constructor(props) {
@@ -49,7 +55,7 @@ class Game extends React.PureComponent {
 	    let gen = new Generator(this.props.seed, this.props.randomize);
 	   	gen.generate(tiles);
 
-		this.state = {focus: {}, display: DISPLAY_TYPES[0], day: 0, tiles};
+		this.state = {focus: {}, isNight: true, display: DISPLAY_TYPES[0], day: 0, tiles};
 
 	}
 
@@ -65,16 +71,18 @@ class Game extends React.PureComponent {
 		return (
 		  	<table className='container'><tbody><tr>
 			    <GameField
-				    hexsize={this.props.hexsize}
+			    	night={this.state.isNight}
 				    tiles={this.state.tiles}
+				    hexsize={this.props.hexsize}
 				    display={this.state.display}
 				    bar={this}
 				    focus={this.state.focus.pos} />
 			  	<Sidebar
+				    tiles={this.state.tiles}
 				  	day={this.state.day}
 				  	display={this.state.display}
-				  	tile={this.state.focus.tile}
-				  	container={this}/>
+				    focus={this.state.focus} 
+				  	container={this} />
 		  	</tr></tbody></table>
 		);
 	}
@@ -121,22 +129,26 @@ class Tiles {
 		if(this.container)
 			this.container.tick();
 
-		let neighboors = this.neighboors(pos, radius, true);
-		let largerNeighboors = this.neighboors(pos, radius + 1, true);
+		let next = this.clone();
+
+		let neighboors = next.neighboors(pos, radius, true);
+		let largerNeighboors = next.neighboors(pos, radius + 1, true);
 
 		//increment day
-	    for(let pos of neighboors)
-	    	this.get(pos).day++;
+	    for(let pos of neighboors) {
+	    	let n = next.get(pos);
+	    	n.set({day: n.day + 1});
+	    }
 
 	    //update diff
 	    for(let pos of largerNeighboors)
-	    	this.get(pos).updateDiff(this, pos);
+	    	next.get(pos).updateDiff(next, pos);
 
 	    //tick
 	    for(let pos of neighboors)
-	    	this.get(pos).tick(this, pos);
+	    	next.get(pos).tick(next, pos);
 
-	    this.apply();
+	    next.apply();
 	}
 
 	resetChanges() {
@@ -178,6 +190,10 @@ class Tiles {
 
 	}
 
+	isNight() {
+		return this.container && this.container.state.isNight;
+	}
+
 }
 
 class Button extends React.PureComponent {
@@ -197,15 +213,54 @@ class DisplayButtons extends React.PureComponent {
 
 	render() {
 		return (
-			<table className='button-bar'><tbody>
-				<tr>
+			<div className='button-bar'>
          			{DISPLAY_TYPES.map((type, i) => {
-         				return (<td>
-         					<Button active={type === this.props.active} key={type.icon} click={() => this.props.container.setState({display: type})} container={this.props.container} text={type.icon} />
-         				</td>);
+         				return (
+         					<Button active={type === this.props.active} key={type.icon} click={() => this.props.container.setState({display: type})} text={type.icon} />
+         				);
          			})}
-				</tr>
-			</tbody></table>
+			</div>
+		);
+	}
+
+}
+
+class PlayButtons extends React.Component {
+
+	constructor(props) {
+		super(props);
+
+		this.state = {active: false};
+	}
+
+	toggle() {
+		let active = !this.state.active && this.props.focus.pos;
+
+		let tick = 
+			function(button) {
+
+				if(button.props.focus.pos)
+					button.props.tiles.tick(button.props.focus.pos, TICK_RADIUS);
+				else button.toggle();
+
+			};
+
+		if(active) {
+			tick(this);
+			this.state.interval = window.setInterval(tick, TICK_TIME, this);
+		}
+
+		else
+			window.clearInterval(this.state.interval);
+
+		this.setState({active});
+	}
+
+	render() {
+		return (
+			<div className='button-bar'>
+				<Button active={this.state.active} click={() => this.toggle()} text={this.state.active ? '⏸' : '▶'} />
+			</div>
 		);
 	}
 
@@ -217,20 +272,32 @@ class Sidebar extends React.Component {
 		return (
 			<td className='sidebar'>
 
+				<PlayButtons tiles={this.props.tiles} focus={this.props.focus} />
 				<DisplayButtons active={this.props.display} container={this.props.container}/>
 
-				{ this.props.tile ? (
+				{ this.props.focus.tile ? (
 					<React.Fragment>
 
-					<h3>Day {this.props.tile.day}</h3>
+					<h3>Day {this.props.focus.tile.day}</h3>
 
-					<h3>{this.props.tile.season().name}</h3>
-					<h3><Twemoji>{this.props.tile.season().icon}</Twemoji></h3>
+					<h3>{this.props.focus.tile.season().name}</h3>
+					<h3><Twemoji>
+							{this.props.focus.tile.season().icon}
+							{this.props.focus.tile.lunar().icon}
+						</Twemoji>
+					</h3>
 
-						<Hex pos={new Pos(0,0)} display={this.props.display} tile={this.props.tile} isFocus={true}/>
-						<h2>{this.props.tile.type.name}</h2>
-						{this.props.tile.snowed ? (<p>Snowed</p>) : null}
-						{this.props.tile.taintProcess ? (<p>{this.props.tile.taintProcess - 1} turn until tainted</p>) : null}
+					<Hex pos={new Pos(0,0)} display={this.props.display} tile={this.props.focus.tile} isFocus={true}/>
+					<h2>{this.props.focus.tile.type.name}</h2>
+					{this.props.focus.tile.snowed ? (<p>Snowed</p>) : null}
+					{this.props.focus.tile.taintProcess ? (<p>{this.props.focus.tile.taintProcess - 1} turn until tainted</p>) : null}
+					{this.props.focus.tile.detail ? (<p>{this.props.focus.tile.detail.name}</p>) : null}
+
+					{Object.keys(this.props.focus.tile.tribes).map(tribe => {
+						let amount = this.props.focus.tile.tribes[tribe];
+						return <p>{amount} {tribe}{amount != 1 ? 's' : ''}</p>
+					})}
+
 					</React.Fragment>
 				) : null}
 
@@ -245,32 +312,34 @@ class GameField extends React.Component {
   render() {
   	let size = this.props.hexsize;
     return (
-        <td className='gamefield'><div>
-        	<div>
-	          {Object.keys(this.props.tiles.tiles).map((pos, i) => {
-	            pos = Pos.from(pos);
-	            return ( 
-		            <Hex
-		    			display={this.props.display}
-		    			key={pos}
-		    			bar={this.props.bar}
-		    			tile={this.props.tiles.get(pos)}
-		    			pos={pos}
-		    			tiles={this.props.tiles}
-		    			size={size} 
-		    			hover={pos.inHex(this.props.focus, TICK_RADIUS)}
-		    			focus={pos.isSame(this.props.focus)}
-		    		/>
-		    	);
-	          })}
-        	</div>
-			<div className='clouds'>
-				{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
-					return <Cloud size={size * (1 + Math.random() * 2)} top={Math.random() * 100} delay={Math.random() * 10}/>
-				})}
-			</div>
-          { TICK_RADIUS < Infinity && false ? <Focus pos={this.props.focus} size={size} /> : null}
-      </div></td>
+        <td className='gamefield-container'>
+	        <div className={'gamefield ' + (this.props.night ? 'night' : 'day')}>
+	        	<div>
+		          {Object.keys(this.props.tiles.tiles).map((pos, i) => {
+		            pos = Pos.from(pos);
+		            return ( 
+			            <Hex
+			    			display={this.props.display}
+			    			key={pos}
+			    			bar={this.props.bar}
+			    			tile={this.props.tiles.get(pos)}
+			    			pos={pos}
+			    			tiles={this.props.tiles}
+			    			size={size} 
+			    			hover={pos.inHex(this.props.focus, TICK_RADIUS)}
+			    			focus={pos.isSame(this.props.focus)}
+			    		/>
+			    	);
+		          })}
+	        	</div>
+				<div className='clouds'>
+					{[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+						return <Cloud key={i} size={size * (1 + Math.random() * 2)} top={Math.random() * 100} delay={Math.random() * 20}/>
+					})}
+				</div>
+	          { TICK_RADIUS < Infinity && false ? <Focus pos={this.props.focus} size={size} /> : null}
+	      </div>
+      </td>
     );
   }
 }
@@ -301,12 +370,30 @@ class Detail extends React.PureComponent {
 	render() {
 
 		if(!this.props.value) return null;
+		let svg = this.props.value.icon();
 
 		return (
 			<div className='hex detail' style={{
 				width: this.props.size * 60 + '%',
 				height: this.props.size * 60 + '%',
-				backgroundColor: this.props.value.getColor()
+				backgroundColor: svg ? 'transparent' : this.props.value.getColor()
+				}}
+			>
+			{svg ? <img draggable={false} src={require('./assets/' + svg.toLowerCase() + '.svg')}></img> : null}
+			</div>
+		);
+	}
+}
+
+class TribeSpot extends React.PureComponent {
+	render() {
+		let i = this.props.index;
+		let r = 30;
+		return (
+			<div className='tribe' style={{
+				top: (50 - Math.sin(Math.PI * 6 / Tribe.MAX * i) * r) + '%',
+				left: (50 - Math.cos(Math.PI * 6 / Tribe.MAX * i) * r * 1.15) + '%',
+				backgroundColor: this.props.tribe.color
 			}}>
 			</div>
 		);
@@ -332,6 +419,7 @@ class Focus extends React.Component {
 class Hex extends React.Component {
 
 	shouldComponentUpdate(nextProps) {
+
 		if(this.props.isFocus)
 			return true;
 
@@ -375,14 +463,16 @@ class Hex extends React.Component {
 		let tile = this.props.tile;
 		if(!tile) return null;
 
-		let display = this.props.display;
-		let color = display.color(tile, this.props.pos);
-		let text = display.text(tile, this.props.pos);
+		let undiscoverd = DISCOVER_MODE && tile.day < 2;
+		let details = !undiscoverd && this.props.display.details;
+		let color = undiscoverd ? null : this.props.display.color(tile, this.props.pos);
+		let text = this.props.display.text(tile, this.props.pos);
+		let index = Math.floor(noise.simplex2(this.props.pos.x, this.props.pos.y) * (Tribe.MAX - 1));
 
 		return (
 			<div
 				onClick={this.handleClick}
-				className={'hex tile' + (this.props.isFocus ? ' focus' : '') + (this.props.hover ? ' hover' : '')}
+				className={'hex tile' + (this.props.isFocus ? ' focus' : '') + (this.props.hover ? ' hover' : '') + (tile.type.glowing ? ' glowing' : '')}
 				style={ !this.props.isFocus ? {
 					top: this.props.pos.y * (this.props.size / 1.37 + TILE_MARGIN),
 					left: (this.props.pos.x + (this.props.pos.y / 2)) * (this.props.size / 1.19 + TILE_MARGIN),
@@ -393,8 +483,18 @@ class Hex extends React.Component {
 					backgroundColor: color
 				}}
 			>
-			{tile.detail && display.details ? <Detail size={tile.detail.size(tile)} value={tile.detail} /> : null}
-			{!display.details && text != null ? <p>{text}</p> : null}
+
+			{Object.keys(tile.tribes).map((tribe) => {
+				if(!details) return null;
+				let tribes = [];
+				for(let i = 0; i < tile.tribes[tribe]; i++)
+					tribes.push(<TribeSpot index={index++} key={tribe + '_' + i} tribe={Tribe.fromString(tribe)} size={this.props.size * 0.15}/>)
+				return tribes;				
+			})}
+
+			{tile.detail && details ? <Detail size={tile.detail.size(tile)} value={tile.detail} /> : null}
+
+			{!details && text != null ? <p>{text}</p> : null}
 			</div>
 		);
 	}

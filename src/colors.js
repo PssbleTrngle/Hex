@@ -9,10 +9,10 @@ export function blend(color1, color2, percentage) {
     percentage = percentage || 0.5;
 
     // 1: validate input, make sure we have provided a valid hex
-    if (color1.length != 4 && color1.length != 7)
+    if (color1.length !== 4 && color1.length !== 7)
         return null;
 
-    if (color2.length != 4 && color2.length != 7)
+    if (color2.length !== 4 && color2.length !== 7)
         return null;  
 
     if (percentage > 1 || percentage < 0)
@@ -21,11 +21,11 @@ export function blend(color1, color2, percentage) {
     // 2: check to see if we need to convert 3 char hex to 6 char hex, else slice off hash
     //      the three character hex is just a representation of the 6 hex where each character is repeated
     //      ie: #060 => #006600 (green)
-    if (color1.length == 4)
+    if (color1.length === 4)
         color1 = color1[1] + color1[1] + color1[2] + color1[2] + color1[3] + color1[3];
     else
         color1 = color1.substring(1);
-    if (color2.length == 4)
+    if (color2.length === 4)
         color2 = color2[1] + color2[1] + color2[2] + color2[2] + color2[3] + color2[3];
     else
         color2 = color2.substring(1);   
@@ -57,7 +57,7 @@ export function blend(color1, color2, percentage) {
 */
 export function int_to_hex(num) {
     var hex = Math.round(num).toString(16);
-    if (hex.length == 1)
+    if (hex.length === 1)
         hex = '0' + hex;
     return hex;
 }
