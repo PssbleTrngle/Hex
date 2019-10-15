@@ -1,17 +1,16 @@
-class Collection {
+class Collection<T> {
 
-	map = [];
-	total = 0;
+	private map: {value: T, chance: number}[] = [];
+	private total = 0;
 
-	add(value, chance) {
-
+	add(value: T, chance: number) {
 		this.map.push({value, chance});
 		this.total += chance;
 		return this;
 
 	}
 
-	get(random) {
+	get(random: number = Math.random()): T | null {
 
 		random *= this.total;
 
@@ -22,6 +21,8 @@ class Collection {
 			if(t >= random) return entry.value;
 
 		}
+
+		return null;
 
 	}
 

@@ -1,7 +1,6 @@
-import Pos from './Pos.js';
-import Details from './Detail.js';
-
 class Type {
+
+	static NULL =			new Type('#000000', 'NULL');
 
 	static GRASS =  		new Type('#54b830', 'Grass');
 	static DIRT =  			new Type('#8f642c', 'Dirt');
@@ -9,13 +8,6 @@ class Type {
 	static MUD =  			new Type('#7a5727', 'Mud');
 	static SAND =  			new Type('#e0d284', 'Sand');
 
-	static TAINT =  		new Type('#a569af', 'Taint').isTainted();
-	static POISON =  		new Type(["#a58ecc", "#d684e8"], 'Poison').isTainted().isLiquid();
-
-	static HOLY_LAND =  	new Type('#dfef39', 'Holy Land')
-									.influence([Type.POISON], Type.WATER)
-									.influence([Type.TAINT], Type.DIRT);
-	static NECTAR =  		new Type(["#f9c909", "#f9ad09"], 'Nectar');
 	static VOLCANIC_ROCK =  new Type('#513227', 'Volcanic Rock');
 	static ASH =  			new Type('#544c49', 'Ash');
 	static VOLCANIC_SAND =  new Type('#b5a96a', 'Volcanic Sand');
@@ -24,8 +16,7 @@ class Type {
 	static LAVA =  			new Type(["#f44122", "#ff932d"], 'Lava').isLiquid().isGlowing()
 									.influence([Type.GRASS], Type.DIRT)
 									.influence([Type.MUD], Type.DIRT)
-									.influence([Type.DIRT], Type.ASH)
-									.influence([Details.TREE], null);
+									.influence([Type.DIRT], Type.ASH);
 
 	static WATER =  		new Type(["#48abc4", "#2066ab"], 'Water').isLiquid()
 									.influence([Type.DIRT], Type.MUD)
@@ -33,41 +24,44 @@ class Type {
 									.influence([Type.MUD], Type.GRASS)
 									.influence([Type.LAVA], Type.VOLCANIC_ROCK);
 
-	static FARMLAND =  			new Type('#7a5727', 'Farmland');
+	static TAINT =  		new Type('#a569af', 'Taint').isTainted();
+	static POISON =  		new Type(["#a58ecc", "#d684e8"], 'Poison').isTainted().isLiquid();
 
+	static HOLY_LAND =  	new Type('#dfef39', 'Holy Land')
+									.influence([Type.POISON], Type.WATER)
+									.influence([Type.TAINT], Type.DIRT);
+	static NECTAR =  		new Type(["#f9c909", "#f9ad09"], 'Nectar');
+
+	static FARMLAND =  		new Type('#7a5727', 'Farmland');
+
+	liquid = false;
+	glowing = false;
 	tainted = false;
-	color; 
-	name;
-	influences = [];
+	influences: {affect: Type, replace: Type}[] = [];
 
-	constructor(color, name) {
-		this.color = color;
-		this.name = name;
-		this.liquid = false;
-		this.glowing = false;
-	}
+	constructor(private _color: string | string[], public name: string) {}
 
-	isLiquid() {
+	isLiquid(): Type {
 		this.liquid = true;
 		return this;
 	}
 
-	isGlowing() {
+	isGlowing(): Type {
 		this.glowing = true;
 		return this;
 	}
 
-	getColor() {
-		return this.color;
+	get color(): string | string[] {
+		return this._color;
 	}
 
-	influence(affects, replace) {
+	influence(affects: Type[], replace: Type): Type {
 		for(let affect of affects)
 			this.influences.push({affect, replace});
 		return this;
 	}
 
-	isTainted() {
+	isTainted(): Type {
 		this.tainted = true;
 		return this;
 	}

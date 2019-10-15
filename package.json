@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@types/fast-simplex-noise": "^3.0.0",
+    "@types/jest": "^24.0.19",
+    "@types/node": "^12.7.12",
+    "@types/react": "^16.9.7",
+    "@types/react-dom": "^16.9.2",
+    "fast-simplex-noise": "^3.2.1",
+    "open-simplex-noise": "^1.6.0",
     "react": "^16.10.2",
     "react-dom": "^16.10.2",
     "react-scripts": "3.2.0",
-    "react-twemoji": "^0.2.3"
+    "react-twemoji": "^0.2.3",
+    "typescript": "^3.6.4"
   },
   "scripts": {
     "start": "react-scripts start",

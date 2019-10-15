@@ -3,13 +3,13 @@ class Season {
 	static DAYS_PER_SEASON = 4;
 	static START = 1;
 
-	static get(days) {
+	static get(days: number): Season {
 
 		return Season.VALUES[(Math.floor(days / Season.DAYS_PER_SEASON) + Season.START) % Season.VALUES.length]
 
 	}
 
-	static VALUES = [
+	static VALUES: Season[] = [
 		new Season('🌸', 'Early Spring', -0.2, '#80bf28'),
 		new Season('🌸', 'Mid Spring', 0, '#80bf28'),
 		new Season('🌸', 'Late Spring', 0.2, '#80bf28'),
@@ -27,16 +27,7 @@ class Season {
 		new Season('❄', 'Late Winter', -0.3, '#429ef5')
 	];
 
-	name;
-	tempMod;
-	color;
-
-	constructor(icon, name, tempMod, color) {
-		this.name = name;
-		this.color = color;
-		this.icon = icon;
-		this.tempMod = tempMod;
-	}
+	constructor(public icon: string, public name: string, public tempMod: number, public color: string) {}
 
 }
 

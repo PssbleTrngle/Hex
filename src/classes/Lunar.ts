@@ -3,13 +3,13 @@ class Lunar {
 	static DAYS_PER_PHASE = 3;
 	static START = 1;
 
-	static get(days) {
+	static get(days: number): Lunar {
 
 		return Lunar.VALUES[(Math.floor(days / Lunar.DAYS_PER_PHASE) + Lunar.START) % Lunar.VALUES.length]
 
 	}
 
-	static VALUES = [
+	static VALUES: Lunar[] = [
 		new Lunar('🌑', 'New Moon'),
     	new Lunar('🌒', 'Waxing Crescent'),
     	new Lunar('🌓', 'First Quarter'),
@@ -20,13 +20,7 @@ class Lunar {
     	new Lunar('🌘', 'Waning Crescent', true)
     ];
 
-	name;
-
-	constructor(icon, name, growRift) {
-		this.name = name;
-		this.icon = icon;
-		this.growRift = !!growRift;
-	}
+	constructor(public icon: string, public name: string, public growRift: boolean = false) {}
 
 }
 
