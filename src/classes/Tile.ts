@@ -30,12 +30,12 @@ export class Tile {
 
 	tribes = new Map<Tribe, number>();
 
-	set temp(t: number) {
-		this._temp = t;
-	}
-
 	get temp(): number {
 		return Math.max(-1, Math.min(1, this._temp + this.season.tempMod));
+	}
+
+	set temp(temp: number) {
+		this._temp= temp;
 	}
 
 	get season(): Season {
@@ -58,11 +58,11 @@ export class Tile {
 		}
 	}
 
-	applyInfluences(neighboor: Tile) {
+	applyInfluences(neighboor: Set) {
 
 		for(let influence of this.type.influences) {
-			if(influence.replace instanceof Type && influence.affect === neighboor.type) {
-				neighboor.type = influence.replace;
+			if(influence.replace instanceof Type && influence.affect === neighboor.get.type) {
+				neighboor.set.type = influence.replace;
 				break;
 			}
 		}
@@ -86,62 +86,6 @@ export class Tile {
 			this.collapse(pos, tiles);
 	}
 
-	tick(tiles: Tiles, pos: Pos) {
-
-		tiles.neighboors(pos).forEach((n, p) => {
-
-			this.applyInfluences(n);
-
-			if(this.type.tainted && n.temp < Tile.TAINT_TEMP && !n.taintProcess) {
-				
-				switch(n.type) {
-					case Type.DIRT:
-					case Type.GRASS:
-					case Type.SAND:
-					case Type.WATER:
-						n.taintProcess = 1;
-				}
-			
-			}
-
-			if(this.type === Type.HOLY_LAND)
-				n.warded = true;
-
-		});
-
-		if(this.warded && this.taintProcess)
-			this.taintProcess = false;
-
-		if(this.taintProcess === 1 && !this.warded) {
-
-			if(this.type === Type.WATER)
-				this.type = Type.POISON;
-			else
-				this.type = Type.TAINT;
-
-			this.taintProcess = false;
-
-		} else if(this.taintProcess)
-			this.taintProcess--;
-
-		if(this.type.tainted && this.detail)
-			this.detail = this.detail.tainted;
-
-		this.snowed = !this.type.liquid && this.type  !==  Type.ICE && this.temp < Tile.SNOW_TEMP;
-
-		if(this.type === Type.WATER && this.temp < Tile.SNOW_TEMP)
-			this.type = Type.ICE;
-		if(this.type === Type.ICE && this.temp >= Tile.SNOW_TEMP)
-			this.type = Type.WATER;
-
-		if(this.detail)
-			this.detail.tick(this, tiles, pos);
-
-		this.tribes.forEach((amount, tribe) => {
-			tribe.tick(tiles, pos, this);
-		});
-	}
-
 	collapse(pos: Pos, tiles: Tiles) {
 
 		let max = Number.MIN_SAFE_INTEGER;
@@ -163,6 +107,84 @@ export class Tile {
 
 		tiles.neighboors(pos, 1, true).forEach((n, p) => n.updateDiff(tiles, p, true));
 
+	}
+
+	createSet(): Set {
+		return new Set(this);
+	}
+
+}
+
+export class Set {
+
+	set: Tile;
+	get: Readonly<Tile>;
+
+	constructor(get: Tile) {
+		this.get = Object.freeze(get.clone());
+		this.set = get.clone();
+	}
+
+	tick(tiles: Tiles, pos: Pos) {
+
+		tiles.neighboors(pos).forEach((n, p) => {
+
+			n.applyInfluences(this);
+
+			if(this.get.type.tainted && n.temp < Tile.TAINT_TEMP && !n.taintProcess) {
+				
+				switch(n.type) {
+					case Type.DIRT:
+					case Type.GRASS:
+					case Type.SAND:
+					case Type.WATER:
+						n.taintProcess = 1;
+				}
+			
+			}
+
+			if(this.get.type === Type.HOLY_LAND)
+				n.warded = true;
+
+		});
+
+		if(this.get.warded && this.get.taintProcess)
+			this.set.taintProcess = false;
+
+		if(this.get.taintProcess === 1 && !this.get.warded) {
+
+			if(this.get.type === Type.WATER)
+				this.set.type = Type.POISON;
+			else
+				this.set.type = Type.TAINT;
+
+			this.set.taintProcess = false;
+
+		} else if(this.set.taintProcess)
+			this.set.taintProcess--;
+
+		if(this.get.type.tainted && this.get.detail)
+			this.set.detail = this.get.detail.tainted;
+
+		this.set.snowed = !this.get.type.liquid && this.get.type  !==  Type.ICE && this.get.temp < Tile.SNOW_TEMP;
+
+		if(this.get.type === Type.WATER && this.get.temp < Tile.SNOW_TEMP)
+			this.set.type = Type.ICE;
+		if(this.get.type === Type.ICE && this.get.temp >= Tile.SNOW_TEMP)
+			this.set.type = Type.WATER;
+
+		if(this.get.detail)
+			this.get.detail.tick(tiles, pos, this);
+
+		this.get.tribes.forEach((amount, tribe) => {
+			tribe.tick(tiles, pos, this);
+		});
+
+		this.apply();
+	}
+
+	apply(): Tile {
+		return this.set.clone();
 	}
 
 }

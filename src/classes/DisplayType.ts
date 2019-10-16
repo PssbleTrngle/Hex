@@ -19,15 +19,36 @@ class Default extends DisplayType {
 
 	color(tile: Tile, pos: Pos): string | undefined {
 
-		let noise = Math.abs(this.noise.noise2D(pos.x * 10, pos.y * 10));
-		noise = Math.random();
+		let noise = 0;
 
-		if(tile.snowed) return blend('#EEE', '#DDD', noise);
-	
-		let color = tile.type.color;
-		if(Array.isArray(color)) return blend(color[0], color[1], (this.noise.noise2D(pos.x - Math.floor(pos.y / 2), pos.y * 1) + 1) / 2);
-		return blend(color, '#000', noise * 0.08);
-	
+		let x = pos.x - Math.floor(pos.y / 2);
+		let y = pos.y;
+
+		let noNoise = false;
+		let cleanNoise = false;
+
+		let color: string[];
+		if(tile.snowed) {
+
+			let s = cleanNoise ? 10 : 1;
+			color = ['#EEE', '#DDD'];
+			noise = noNoise ? 0.5 : Math.abs(this.noise.noise2D(x / s, y / s));
+
+		} else if(Array.isArray(tile.type.color)) {
+
+			let s = 10;
+			color = tile.type.color;
+			noise = noNoise ? 0.5 : Math.abs(this.noise.noise2D(x / s, y / s));
+
+		} else {
+
+			let s = cleanNoise ? 10 : 1;
+			color = [tile.type.color, '#000'];
+			noise = noNoise ? 0 :Math.abs(this.noise.noise2D(x / s, y / s)) * (cleanNoise ? 0.2 : 0.12);
+
+		}
+
+		return blend(color[0], color[1], noise);	
 	}
 
 }

@@ -12,6 +12,7 @@ class Collection<T> {
 
 	get(random: number = Math.random()): T | null {
 
+		random = Math.min(1, Math.max(0, random));
 		random *= this.total;
 
 		let t = 0;

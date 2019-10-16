@@ -50,12 +50,11 @@ export class Game extends React.PureComponent<GameOptions, GameState> {
 	      for(let x = 0; x < this.props.width; x++)
 	        tiles.add(new Pos(x - Math.floor(y/2), y));
 
-		this.state = {focus: {pos: undefined, tile: undefined}, isNight: false, display: DISPLAY_TYPES[0], tiles, day: 0};
+		this.state = {focus: {pos: undefined, tile: undefined}, isNight: true, display: DISPLAY_TYPES[0], tiles, day: 0};
 
 	}
 
 	componentDidMount() {
-		return;
 		this.state.tiles.tick(new Pos(0,0), Infinity);
 	}
 
@@ -305,8 +304,8 @@ export class Focus extends React.Component<{options: GameOptions, size: number, 
 			<div className='hex-focus' style={{
 				width: this.props.size * (this.props.options.radius * 2),
 				height: this.props.size * (this.props.options.radius * 2) / 1.15,
-				top: (this.props.pos.y + 0.5) * (this.props.size / 1.37 + this.props.options.margin),
-				left: ((this.props.pos.x + 0.5) + (this.props.pos.y / 2)) * (this.props.size / 1.19 + this.props.options.margin),
+				top: (this.props.pos.isometric().y + 0.5) * (this.props.size / 1.37 + this.props.options.margin),
+				left: (this.props.pos.isometric().x + 0.5) * (this.props.size / 1.19 + this.props.options.margin),
 			}}></div>
 		);
 	}
@@ -378,7 +377,7 @@ export class Hex extends React.Component<TileProps,{}> {
 		/* let index = Math.floor(noise.simplex2(this.props.pos.x, this.props.pos.y) * (Tribe.MAX - 1)); */
 		let index = 0;
 		let size = this.props.options.hexsize;
-		
+
 		return (
 			<div
 				onClick={this.handleClick}

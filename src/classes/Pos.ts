@@ -27,6 +27,10 @@ export class Pos {
 
 	}
 
+	isometric(): Pos {
+		return new Pos(this.x + Math.floor(this.y / 2), this.y);
+	}
+
 }
 
 export default Pos;

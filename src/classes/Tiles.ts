@@ -32,10 +32,8 @@ export class Tiles {
 	}
 
 	apply() {
-
-		this.tiles.forEach((tile, pos) => {
-			let changed = this.changed.get(pos);
-			if(changed) this.tiles.set(pos, changed);
+		this.changed.forEach((tile, pos) => {
+			this.tiles.set(pos, tile);
 		});
 
 		if(this.container)
@@ -62,11 +60,12 @@ export class Tiles {
 	    largerNeighboors.forEach((n, p) =>  n.updateDiff(next, p));
 
 	    //tick
-
 		neighboors.forEach((n, p) => {
-    		let c = n.clone();
-    		c.tick(next, p);
-    		this.changed.set(p, c);
+    		let set = n.createSet();
+    		set.tick(next, p);
+    		let changed = next.changed.get(p) || set.apply();
+    		changed = Object.assign(changed, set.apply());
+    		next.changed.set(p, changed);
 		});
 
 	    next.apply();
@@ -96,6 +95,10 @@ export class Tiles {
 			for(let key of Array.from(this.tiles.keys()).filter(pos => {
 				return !(pos.inHex(center, radius) && (addCenter || !center.isSame(pos)));
 			})) map.delete(key);
+
+		map.forEach((tile, pos) => {
+			map.set(pos, tile.clone());
+		});
 
 		return map;
 	}

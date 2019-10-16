@@ -2,7 +2,7 @@ import Type from './Type';
 import Tribe from './Tribe';
 import Pos from './Pos';
 import Tiles from './Tiles';
-import Tile from './Tile';
+import { Set, Tile } from './Tile';
 
 export class Detail {
 
@@ -16,7 +16,7 @@ export class Detail {
 
 	constructor(public color: string, public name: string) {}
 
-	tick(tile: Tile, tiles: Tiles, pos: Pos): void {}
+	tick(tiles: Tiles, pos: Pos, tile: Set): void {}
 
 	size(tile: Tile): number {
 		return 1;
@@ -44,10 +44,10 @@ export class Rift extends Detail {
 		super(color, name);
 	}
 
-	tick(tile: Tile, tiles: Tiles, pos: Pos): void {
+	tick(tiles: Tiles, pos: Pos, tile: Set): void {
 
-		if(tile.lunar.growRift)
-			this.grow(tile);
+		if(tile.get.lunar.growRift)
+			this.grow(tile.set);
 
 	}
 
@@ -97,19 +97,19 @@ export class Plant extends Detail {
 			tile.growth++;
 	}
 
-	tick(tile: Tile, tiles: Tiles, pos: Pos) {
-		this.grow(tile);
+	tick(tiles: Tiles, pos: Pos, tile: Set) {
+		this.grow(tile.set);
 
-		if(this.canBurn && (Math.random() * tile.temp > 0.7 || tile.willBurn)) {
-			tile.detail = this.burnedVersion;
-			tile.willBurn = false;
-			tile.beforeBurning = this;
+		if(this.canBurn && (Math.random() * tile.get.temp > 0.7 || tile.get.willBurn)) {
+			tile.set.detail = this.burnedVersion;
+			tile.set.willBurn = false;
+			tile.set.beforeBurning = this;
 		}
 
 		if(this === Details.BURNING_TREE) {
 
-			if(tile.beforeBurning && tile.temp < 0.8 && Math.random() < 0.5)
-				tile.detail = tile.beforeBurning;
+			if(tile.get.beforeBurning && tile.get.temp < 0.8 && Math.random() < 0.5)
+				tile.set.detail = tile.get.beforeBurning;
 			else {
 
 				tiles.neighboors(pos).forEach((n, p) => {
@@ -117,7 +117,7 @@ export class Plant extends Detail {
 						n.willBurn = true;
 				});
 
-				tile.detail = this.deadVersion;
+				tile.set.detail = this.deadVersion;
 
 			}
 
@@ -141,10 +141,6 @@ class Crop extends Plant {
 		return Details.BURNED_CROPS;
 	}
 
-	tick(tile: Tile, tiles: Tiles, pos: Pos): void {
-		this.grow(tile);
-	}
-
 	size(): number {
 		return 0.8;
 	}
@@ -157,10 +153,10 @@ class SacredTree extends Plant {
 		super(color, max, name, true);
 	}
 
-	tick(tile: Tile, tiles: Tiles, pos: Pos) {
-		this.grow(tile);
+	tick(tiles: Tiles, pos: Pos, tile: Set) {
+		super.tick(tiles, pos, tile);
 
-		if(tile.growth === this.max) {
+		if(tile.get.growth === this.max) {
 
 			tiles.neighboors(pos).forEach((n, p) => {
 
@@ -173,7 +169,7 @@ class SacredTree extends Plant {
 
 			});
 
-			tile.type = Type.HOLY_LAND;
+			tile.set.type = Type.HOLY_LAND;
 		}
 
 	}

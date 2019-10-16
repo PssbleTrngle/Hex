@@ -26,10 +26,10 @@ class TreeGenerator extends GeneratorPart {
 
 	generateAt(tile: Tile, pos: Pos, random: number): void {
 		let s = 20;
-		let r = Math.abs(this.noise.noise2D((pos.x + pos.y / 2) / s, pos.y / s));
+		let r = Math.abs(this.noise.noise2D(pos.x / s, pos.y / s));
 
 		if(tile.type === Type.GRASS) {
-			if(r > 0.7 || tile.energy > 0.6) {
+			if(r > 0.6 || tile.energy > 0.6) {
 				tile.detail = Details.TREE;
 				tile.growth = Details.TREE.max - Math.floor(random * 1.2);
 				tile.growth = Math.max(1, tile.growth);
@@ -51,7 +51,7 @@ class EnergyGenerator extends GeneratorPart {
 		if(!tile.energy) tile.energy = 0;
 
 		let s = 40;
-		let energy = Math.abs(this.noise.noise2D((pos.x + pos.y / 2) / s, pos.y / s));
+		let energy = Math.abs(this.noise.noise2D(pos.x / s, pos.y / s));
 		energy = 1 - Math.sin(energy * Math.PI);
 		energy = Math.pow(energy, 3) * 0.34;
 
@@ -86,7 +86,7 @@ class TaintGenerator extends GeneratorPart {
 
 	generateAt(tile: Tile, pos: Pos, random: number): void {
 		let s = 40;
-		let r = Math.abs(this.noise.noise2D((pos.x + pos.y / 2) / s, pos.y / s));
+		let r = Math.abs(this.noise.noise2D(pos.x / s, pos.y / s));
 
 		if(r > 0.8 && tile.temp < Tile.TAINT_TEMP) {
 
@@ -107,7 +107,7 @@ class TempGenerator extends GeneratorPart {
 	generateAt(tile: Tile, pos: Pos, random: number): void {
 		
 		let s = 13;
-		let temp = this.noise.noise2D((pos.x + pos.y / 2) / s, pos.y / s) / -0.8;
+		let temp = this.noise.noise2D(pos.x / s, pos.y / s) / -0.8;
 		tile.temp = Math.max(-1, Math.min(1, temp));
 
 	}
@@ -128,7 +128,7 @@ class GroundGenerator extends GeneratorPart {
 	standard = new Collection<Type>()
 		.add(Type.GRASS, 1)
 		.add(Type.DIRT, 0.2)
-		.add(Type.STONE, 0.1)
+		.add(Type.STONE, 0.3)
 		;
 
 	hot = new Collection<Type>()
@@ -143,6 +143,7 @@ class GroundGenerator extends GeneratorPart {
 
 	generateAt(tile: Tile, pos: Pos, random: number): void {
 
+		random = (this.noise.noise2D(pos.x / 3, pos.y / 3) / 0.8 + 1) / 2;
 		let use = this.standard;
 		if(tile.temp > 0.8) use = this.hot;
 		else if(tile.temp < -0.8) use = this.cold;
@@ -159,7 +160,7 @@ class RiverGenerator extends GeneratorPart {
 	generateAt(tile: Tile, pos: Pos, random: number): void {
 
 		let s = 30;
-		let n = Math.abs(this.noise.noise2D((pos.x + pos.y / 2) / s, pos.y / s));
+		let n = Math.abs(this.noise.noise2D(pos.x / s, pos.y / s));
 
 		if(n < 0.1) {
 
@@ -202,7 +203,7 @@ class HumanGenerator extends GeneratorPart {
 	generateAt(tile: Tile, pos: Pos, random: number): void {
 
 		let s = 20;
-		let n = Math.abs(this.noise.noise2D((pos.x + pos.y / 2) / s, pos.y / s))
+		let n = Math.abs(this.noise.noise2D(pos.x / s, pos.y / s))
 		
 		if(n < 0.01 && tile.temp > 0)
 			switch(tile.type) {
@@ -270,7 +271,7 @@ export class Generator {
 	generateAt(tile: Tile, pos: Pos) {
 
 		for(let gen of this.generators)
-			gen.generateAt(tile, pos, this.random());
+			gen.generateAt(tile, pos.isometric(), this.random());
 
 	}
 

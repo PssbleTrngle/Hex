@@ -1,4 +1,4 @@
-import { Tile } from './Tile';
+import { Tile, Set } from './Tile';
 import { Tiles } from './Tiles';
 import { Pos } from './Pos';
 
@@ -11,26 +11,17 @@ export class Tribe {
 
 	static MAX = 8;
 
-	tick(tiles: Tiles, pos: Pos, tile: Tile) {
+	tick(tiles: Tiles, pos: Pos, tile: Set) {
 		let amount = this.grow(tiles, pos, tile);
 		if(amount)
-			tile.addTribe(this, amount);
+			tile.set.addTribe(this, amount);
 	}
 
-	constructor(public color: string, public name: string, public grow: (ts: Tiles, p: Pos, t: Tile) => number | false = () => false) {}
+	constructor(public color: string, public name: string, public grow: (ts: Tiles, p: Pos, t: Set) => number | false = () => false) {}
 
 	toString(): string {
 		return this.name;
 	}
-
-/*
-	static fromString(string: string): Tribe | null {
-		for(let tribe of Tribe.VALUES) 
-			if(tribe.name.toLowerCase() === string.toLowerCase())
-				return tribe;
-		return null;
-	}
-*/
 
 }
 
